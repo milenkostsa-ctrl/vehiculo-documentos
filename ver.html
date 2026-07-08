@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentos del Vehículo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --navy:#152238;
+    --paper:#F3ECDD;
+    --paper-2:#EAE1CC;
+    --stamp:#B23A2E;
+    --steel:#5C7A99;
+    --ink:#22262B;
+    --sage:#6E7F6E;
+    --ok:#3F6B4A;
+    --line: rgba(21,34,56,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--navy);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:28px 18px 60px;}
+
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--steel);
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:10px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--stamp);display:inline-block;}
+
+  .title-card{
+    background:var(--paper);
+    border-radius:10px;
+    padding:18px 18px 20px;
+    box-shadow:0 10px 24px rgba(0,0,0,0.28);
+  }
+  h1{
+    font-family:'Roboto Slab',serif;
+    font-weight:700;
+    font-size:26px;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .sub{color:rgba(34,38,43,0.7); font-size:13.5px;}
+
+  .patente{
+    margin-top:18px;
+    background:var(--paper);
+    border-radius:6px;
+    display:flex;
+    overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,0.28);
+  }
+  .patente .flag{width:12px;background:var(--stamp);flex-shrink:0;}
+  .patente .body{flex:1; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;}
+  .patente .num{font-family:'Space Mono',monospace; font-weight:700; font-size:19px; letter-spacing:.08em; color:var(--ink);}
+  .patente small{font-family:'Space Mono',monospace; font-size:10px; color:var(--sage); text-transform:uppercase;}
+
+  .folder{
+    margin-top:18px;
+    background:var(--paper);
+    border-radius:10px;
+    box-shadow:0 16px 40px rgba(0,0,0,0.32);
+    overflow:hidden;
+  }
+  .doc-row{border-bottom:1px solid var(--line); padding:16px; display:flex; align-items:center; gap:14px;}
+  .doc-row:last-child{border-bottom:none;}
+  .doc-num{font-family:'Space Mono',monospace; font-size:12px; color:var(--sage); width:18px; flex-shrink:0;}
+  .doc-title{flex:1;}
+  .doc-title .name{font-family:'Roboto Slab',serif; font-weight:700; font-size:15px; color:var(--ink);}
+  .doc-title .meta{margin-top:5px;}
+  .status-chip{
+    font-family:'Space Mono',monospace;
+    font-size:9.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:2px 8px;
+    border-radius:20px;
+    border:1px solid currentColor;
+    display:inline-block;
+  }
+  .status-chip.ok{background:var(--ok); color:#fff; border-color:var(--ok);}
+  .status-chip.warn{background:var(--stamp); color:#fff; border-color:var(--stamp);}
+  .status-chip.none{color:var(--sage);}
+  .view-link{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    color:var(--steel);
+    text-decoration:none;
+    flex-shrink:0;
+    padding:7px 12px;
+    border:1px solid var(--line);
+    border-radius:7px;
+  }
+  .link-group{
+    display:flex;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:rgba(243,236,221,0.6);
+    font-size:14px;
+  }
+  footer{
+    margin-top:24px;
+    text-align:center;
+    font-family:'Space Mono',monospace;
+    font-size:10px;
+    color:rgba(243,236,221,0.35);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <div class="title-card">
+    <div class="eyebrow"><span class="dot"></span>CARTERA DIGITAL · VEHÍCULO</div>
+    <h1>Documentos del vehículo</h1>
+    <div class="sub">Vista de solo lectura — documentos vigentes.</div>
+  </div>
+
+  <div class="patente" id="patente-card" style="display:none;">
+    <div class="flag"></div>
+    <div class="body">
+      <div class="num" id="patente-text"></div>
+      <small>Patente</small>
+    </div>
+  </div>
+
+  <div class="folder" id="folder"></div>
+</div>
+
+<footer>VISTA PÚBLICA · SOLO LECTURA</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA-K66gNYzByLycLuMTa1dJSMgupkZ0VLs",
+  authDomain: "documentos-vehiculo.firebaseapp.com",
+  projectId: "documentos-vehiculo",
+  storageBucket: "documentos-vehiculo.firebasestorage.app",
+  messagingSenderId: "332354522321",
+  appId: "1:332354522321:web:a56022bdca19dbe7af89f0"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+const CATEGORIES = [
+  { id:'permiso', label:'Permiso de Circulación', hasExpiry:true },
+  { id:'revision', label:'Revisión Técnica', hasExpiry:true },
+  { id:'soap', label:'SOAP', hasExpiry:true },
+  { id:'padron', label:'Padrón del Vehículo', hasExpiry:false },
+  { id:'licencia', label:'Licencia de Conducir', hasExpiry:true, isCard:true },
+  { id:'carnet', label:'Carnet', hasExpiry:true, isCard:true },
+];
+
+function expiryStatus(iso){
+  if(!iso) return {cls:'none', label:'Sin fecha'};
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp = new Date(iso + 'T00:00:00');
+  const diffDays = Math.round((exp - today) / 86400000);
+  if(diffDays < 0) return {cls:'warn', label:'Vencido'};
+  if(diffDays <= 30) return {cls:'warn', label:`Vence en ${diffDays}d`};
+  return {cls:'ok', label:'Vigente'};
+}
+
+async function load(){
+  const params = new URLSearchParams(window.location.search);
+  const uid = params.get('u');
+  const folder = document.getElementById('folder');
+
+  if(!uid){
+    folder.innerHTML = `<div class="empty-state">Link inválido — falta el identificador del vehículo.</div>`;
+    return;
+  }
+
+  try{
+    const snap = await getDoc(doc(db, 'vehiculos_publicos', uid));
+    if(!snap.exists()){
+      folder.innerHTML = `<div class="empty-state">No hay documentos publicados para este link todavía.</div>`;
+      return;
+    }
+    const data = snap.data();
+
+    if(data.patente){
+      document.getElementById('patente-card').style.display = 'flex';
+      document.getElementById('patente-text').textContent = data.patente;
+    }
+
+    const docs = data.docs || {};
+    let html = '';
+    CATEGORIES.forEach((cat, idx) => {
+      const d = docs[cat.id];
+      let links = '';
+      let hasFile = false;
+
+      if(cat.isCard){
+        hasFile = !!(d && (d.frontUrl || d.backUrl));
+        const parts = [];
+        if(d && d.frontUrl) parts.push(`<a class="view-link" href="${d.frontUrl}" target="_blank" rel="noopener">Frente</a>`);
+        if(d && d.backUrl) parts.push(`<a class="view-link" href="${d.backUrl}" target="_blank" rel="noopener">Dorso</a>`);
+        links = parts.join('');
+      } else {
+        hasFile = !!(d && d.url);
+        if(hasFile) links = `<a class="view-link" href="${d.url}" target="_blank" rel="noopener">Ver</a>`;
+      }
+
+      const status = cat.hasExpiry ? expiryStatus(d && d.expiry) : (hasFile ? {cls:'ok', label:'Disponible'} : {cls:'none', label:'No disponible'});
+      html += `
+        <div class="doc-row">
+          <div class="doc-num">0${idx+1}</div>
+          <div class="doc-title">
+            <div class="name">${cat.label}</div>
+            <div class="meta"><span class="status-chip ${status.cls}">${status.label}</span></div>
+          </div>
+          <div class="link-group">${links}</div>
+        </div>
+      `;
+    });
+    folder.innerHTML = html;
+  }catch(e){
+    console.error(e);
+    folder.innerHTML = `<div class="empty-state">No se pudo cargar la información. Intenta de nuevo.</div>`;
+  }
+}
+
+load();
+</script>
+
+</body>
+</html>
